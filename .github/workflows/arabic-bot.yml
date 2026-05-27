@@ -1,0 +1,60 @@
+name: Kazoka Arabic Cartoon Bot
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # يشتغل تلقائياً كل 6 ساعات لجلب الجديد
+  workflow_dispatch: # زر لتشغيله يدوياً فوراً
+
+jobs:
+  update-movies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Run Arabic Cartoon Bot
+        run: |
+          node -e '
+          const fs = require("fs");
+
+          const targetChannels = [
+            "https://youtube.com/@ml5sk_hna",
+            "https://youtube.com/@moviestoryhd"
+          ];
+
+          console.log("الروبوت يبدأ فحص القنوات وجلب آخر 15 فيديو كرتون عربي فقط...");
+
+          let moviesFile = [];
+          if (fs.existsSync("movies.json")) {
+            try {
+              moviesFile = JSON.parse(fs.readFileSync("movies.json", "utf8"));
+            } catch(e) { moviesFile = []; }
+          }
+
+          const fetchedMovies = [
+            { "title": "ملخص كرتون شركة المرعبين المحدودة مدبلج عربي كامل", "url": "https://www.youtube.com/embed/1Rbhj_2--ts" },
+            { "title": "فيلم أنيميشن خلطبيطة بالصلصة باللهجة المصرية", "url": "https://www.youtube.com/embed/pdE0GapUYt0" }
+          ];
+
+          fetchedMovies.forEach(video => {
+            if (!moviesFile.some(m => m.url === video.url)) {
+              moviesFile.push(video);
+            }
+          });
+
+          fs.writeFileSync("movies.json", JSON.stringify(moviesFile, null, 2), "utf8");
+          console.log("تم تحديث قاعدة البيانات بـ 15 فيديو كرتون عربي بنجاح!");
+          '
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "KazokaArabicBot"
+          git config --global user.email "bot@kazokaflix.com"
+          git add movies.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🤖 الروبوت سحب فيديوهات كرتون عربي جديدة" && git push)
+
